@@ -5,24 +5,26 @@
  */
 package TRESSAT;
 
+import java.rmi.RemoteException;
+
 /**
  *
  * @author skabe
  */
-public class Individuo3SAT {
+public class Individuo3SAT implements java.io.Serializable{
     private int[] genotipo;
     private int fitness;
     private static int [][] instancias=null;
-    public Individuo3SAT(int n){
+    public Individuo3SAT(int n)throws RemoteException{
         this.genotipo=Herramientas.generarArregloBinarios(n);
         calcularFitness();
     }
     
-    public Individuo3SAT(int[] genotipo) {
+    public Individuo3SAT(int[] genotipo) throws RemoteException{
         this.genotipo = genotipo;
         calcularFitness();
     }
-    public Individuo3SAT(Individuo3SAT i){
+    public Individuo3SAT(Individuo3SAT i) throws RemoteException{
         this.genotipo=i.getGenotipo();
         this.fitness=i.getFitness();
     }

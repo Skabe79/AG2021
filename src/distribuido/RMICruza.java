@@ -17,6 +17,7 @@ import java.rmi.RemoteException;
  */
 public interface RMICruza extends Remote{
     public Individuo3SAT cruza_3SAT(Individuo3SAT madre, Individuo3SAT padre, int[] mascara) throws RemoteException;
+    public void setInstancias_3SAT(int [][] instancias)throws RemoteException;
     public IndividuoTCP cruza_TCP(IndividuoTCP madre, IndividuoTCP padre, int[] mascara) throws RemoteException;
     public IndividuoTCP_Hibrido cruza_TCP_Hibrido(IndividuoTCP_Hibrido madre, IndividuoTCP_Hibrido padre, int[] mascara) throws RemoteException;
 }

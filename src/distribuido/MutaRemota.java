@@ -71,5 +71,8 @@ public class MutaRemota extends UnicastRemoteObject implements RMIMuta{
         indiv.actualizarFitness();
         return indiv;
     }
-    
+    @Override
+    public void setInstancias_3SAT(int[][] instancias) throws RemoteException {
+        Individuo3SAT.setInstancias(instancias);
+    }
 }

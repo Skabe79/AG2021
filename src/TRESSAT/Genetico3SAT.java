@@ -140,7 +140,7 @@ public class Genetico3SAT extends Thread{
         }
         return null;
     }
-    private void generarPoblacion(){
+    private void generarPoblacion() throws RemoteException{
         try {
             semaf.acquire();
             Individuo3SAT.setInstancias(getInstancias());
@@ -157,44 +157,50 @@ public class Genetico3SAT extends Thread{
     
     @Override
     public void run(){
-        getFitnessGeneracional().add(Herramientas.mejorPoblacion(getPoblacionActual()).getFitness());
-        for (int i = 0; i < this.getNumGen(); i++) {
-            try {
-                semaf.acquire();
-                //System.out.println("adquirido");
-                ArrayList<Individuo3SAT> nuevaPob= new ArrayList<>();
-                Seleccion.reset();
-                Seleccion.setTipoSeleccion(getTipoSeleccion());
-                for (int j = 0; j < this.getTamPoblacion(); j++) {
-                    Individuo3SAT madre= Seleccion.seleccion(getPoblacionActual());
-                    Individuo3SAT padre= Seleccion.seleccion(getPoblacionActual());
-                    int[] mask= Herramientas.generarArregloBinarios(madre.getGenotipo().length);
-                    Individuo3SAT hijo= panel_hilos.getPrincipal().getrMICruza().cruza_3SAT(madre, padre, mask);//Cruza.cruzaMascaraBin(padre, madre, mask);
-                    if(generarProbabilidadMuta()){
-                        hijo= panel_hilos.getPrincipal().getrMIMuta().muta_3SAT(hijo);
-                        //Muta.muta(hijo);
-                    }
-                    nuevaPob.add(hijo);
-                }
-                sustituirPoblacion(nuevaPob);
-                getFitnessGeneracional().add( Herramientas.mejorPoblacion(nuevaPob).getFitness());
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Genetico3SAT.class.getName()).log(Level.SEVERE, null, ex);
-            }catch (RemoteException ex){
-                ex.printStackTrace();
-            }finally{
-                semaf.release();
+        try {
+            getFitnessGeneracional().add(Herramientas.mejorPoblacion(getPoblacionActual()).getFitness());
+            panel_hilos.getPrincipal().getrMICruza().setInstancias_3SAT(Individuo3SAT.getInstancias());
+            panel_hilos.getPrincipal().getrMIMuta().setInstancias_3SAT(Individuo3SAT.getInstancias());
+            for (int i = 0; i < this.getNumGen(); i++) {
                 try {
-                   Thread.sleep(1);
-               } catch (InterruptedException ex) {
-                   Logger.getLogger(GraficaHilo.class.getName()).log(Level.SEVERE, null, ex);
-               }
+                    semaf.acquire();
+                    //System.out.println("adquirido");
+                    ArrayList<Individuo3SAT> nuevaPob= new ArrayList<>();
+                    Seleccion.reset();
+                    Seleccion.setTipoSeleccion(getTipoSeleccion());
+                    for (int j = 0; j < this.getTamPoblacion(); j++) {
+                        Individuo3SAT madre= Seleccion.seleccion(getPoblacionActual());
+                        Individuo3SAT padre= Seleccion.seleccion(getPoblacionActual());
+                        int[] mask= Herramientas.generarArregloBinarios(madre.getGenotipo().length);
+                        Individuo3SAT hijo= panel_hilos.getPrincipal().getrMICruza().cruza_3SAT(madre, padre, mask);//Cruza.cruzaMascaraBin(padre, madre, mask);
+                        if(generarProbabilidadMuta()){
+                            hijo= panel_hilos.getPrincipal().getrMIMuta().muta_3SAT(hijo);
+                            //Muta.muta(hijo);
+                        }
+                        nuevaPob.add(hijo);
+                    }
+                    sustituirPoblacion(nuevaPob);
+                    getFitnessGeneracional().add( Herramientas.mejorPoblacion(nuevaPob).getFitness());
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Genetico3SAT.class.getName()).log(Level.SEVERE, null, ex);
+                }catch (RemoteException ex){
+                    ex.printStackTrace();
+                }finally{
+                    semaf.release();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(GraficaHilo.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             }
+            getPanel_hilos().terminoEvol();
+        } catch (RemoteException ex) {
+            Logger.getLogger(Genetico3SAT.class.getName()).log(Level.SEVERE, null, ex);
         }
-        getPanel_hilos().terminoEvol();
     }
     
-    private void sustituirPoblacion(ArrayList<Individuo3SAT> nuevaPob) {
+    private void sustituirPoblacion(ArrayList<Individuo3SAT> nuevaPob) throws RemoteException {
         getPoblacionActual().clear();
        for(Individuo3SAT aux:nuevaPob){
             getPoblacionActual().add(new Individuo3SAT(aux));
@@ -211,7 +217,7 @@ public class Genetico3SAT extends Thread{
     /**
      * @param tamPoblacion the tamPoblacion to set
      */
-    public void setTamPoblacion(int tamPoblacion) {
+    public void setTamPoblacion(int tamPoblacion) throws RemoteException {
         this.tamPoblacion = tamPoblacion;
         if(this.getTamPoblacion()<getPoblacionActual().size()){
             while(this.getTamPoblacion()<getPoblacionActual().size()){
@@ -319,14 +325,14 @@ public class Genetico3SAT extends Thread{
     public JPanel_hilos getPanel_hilos() {
         return panel_hilos;
     }
-    public int añadirFinal(ArrayList<Object> individuosNuevos){
+    public int añadirFinal(ArrayList<Object> individuosNuevos) throws RemoteException{
         for (int i = 0; i < individuosNuevos.size(); i++) {
             poblacionActual.add(new Individuo3SAT(((Individuo3SAT)individuosNuevos.get(i)).getGenotipo()));
         }
         this.tamPoblacion=poblacionActual.size();
         return poblacionActual.size();
     }
-    public int sustituirPrincipio(ArrayList<Object> individuosNuevos){
+    public int sustituirPrincipio(ArrayList<Object> individuosNuevos) throws RemoteException{
         if(individuosNuevos.size()>poblacionActual.size()){
             for (int i = 0; i < poblacionActual.size(); i++) {
                 poblacionActual.set(i, new Individuo3SAT(((Individuo3SAT)individuosNuevos.get(i)).getGenotipo()));

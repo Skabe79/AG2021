@@ -6,6 +6,7 @@
 package TRESSAT;
 
 import binario.*;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -23,7 +24,7 @@ public class Herramientas {
         }
         return arreglo;
     }
-    public static Individuo3SAT mejorPoblacion(ArrayList<Individuo3SAT> pob){
+    public static Individuo3SAT mejorPoblacion(ArrayList<Individuo3SAT> pob) throws RemoteException{
         Individuo3SAT mejor= new Individuo3SAT(pob.get(0));
         for(Individuo3SAT aux: pob){
             if(aux.getFitness()<mejor.getFitness()){

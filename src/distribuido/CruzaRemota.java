@@ -123,5 +123,10 @@ public class CruzaRemota extends  UnicastRemoteObject implements RMICruza{
         }
         return true;
     }
+
+    @Override
+    public void setInstancias_3SAT(int[][] instancias) throws RemoteException {
+        Individuo3SAT.setInstancias(instancias);
+    }
     
 }

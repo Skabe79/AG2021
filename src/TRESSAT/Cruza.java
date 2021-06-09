@@ -6,13 +6,14 @@
 package TRESSAT;
 
 import binario.Individuo;
+import java.rmi.RemoteException;
 
 /**
  *
  * @author skabe
  */
 public class Cruza {
-    public static Individuo3SAT cruzaMascaraBin(Individuo3SAT padre, Individuo3SAT madre, int[] mascara) {
+    public static Individuo3SAT cruzaMascaraBin(Individuo3SAT padre, Individuo3SAT madre, int[] mascara) throws RemoteException {
         int[] gen1 = new int[madre.getGenotipo().length];
         int[] gen2 = new int[madre.getGenotipo().length];
         

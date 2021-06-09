@@ -17,6 +17,7 @@ import java.rmi.RemoteException;
  */
 public interface RMIMuta extends Remote{
     public Individuo3SAT muta_3SAT(Individuo3SAT indiv) throws RemoteException;
+    public void setInstancias_3SAT(int [][] instancias)throws RemoteException;
     public IndividuoTCP muta_TCP(IndividuoTCP indiv) throws RemoteException;
     public IndividuoTCP_Hibrido muta_TCP_Hibrido(IndividuoTCP_Hibrido indiv) throws RemoteException;
 }

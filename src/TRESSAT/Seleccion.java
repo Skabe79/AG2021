@@ -6,6 +6,7 @@
 package TRESSAT;
 
 import binario.Individuo;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Random;
 import nDamas.Persistente;
@@ -19,7 +20,7 @@ public class Seleccion {
     private static int total;
     private static double probi[];
     private static boolean persistente=false;
-    public static Individuo3SAT seleccion(ArrayList<Individuo3SAT> poblacion){
+    public static Individuo3SAT seleccion(ArrayList<Individuo3SAT> poblacion) throws RemoteException{
         switch (tipoSeleccion){
             case "Aleatoria":
                 Random ran= new Random();

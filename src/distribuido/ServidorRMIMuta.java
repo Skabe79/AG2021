@@ -17,7 +17,7 @@ public class ServidorRMIMuta {
     public static void main(String[] args) {
         try {
             MutaRemota mr=new MutaRemota();
-            Registry registry= LocateRegistry.createRegistry(1100);
+            Registry registry= LocateRegistry.createRegistry(1101);
             registry.rebind("Muta Remota", mr);
             System.out.println("Servidor de muta remota Activo");
         } catch (Exception e) {

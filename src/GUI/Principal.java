@@ -4,6 +4,8 @@ import TCP.GeneticoTCP_Thread;
 import TCP.IndividuoTCP;
 import TRESSAT.Genetico3SAT;
 import TRESSAT.Individuo3SAT;
+import distribuido.RMICruza;
+import distribuido.RMIMuta;
 import java.awt.HeadlessException;
 import java.awt.Image;
 import java.io.BufferedReader;
@@ -11,6 +13,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
@@ -43,12 +49,26 @@ public class Principal extends javax.swing.JFrame {
     private JFrameNuevoGen frameNuevoGen;
     private ArrayList<Gestor> gestores= new ArrayList<>();
     private ArrayList<JPanel_hilos> hilos= new ArrayList<>();
+    private RMIMuta rMIMuta;
+    private RMICruza rMICruza;
     public Principal() {
         setIcons();
         initComponents();
         addsListener();
+        conectar_ObjetosRemotos();
     }
-    
+    private void conectar_ObjetosRemotos(){
+        try {
+            Registry regCruza= LocateRegistry.getRegistry("127.0.0.1", 1100);
+            Registry regMuta= LocateRegistry.getRegistry("127.0.0.1", 1101);
+            rMICruza=(RMICruza) regCruza.lookup("Cruza Remota");
+            rMIMuta=(RMIMuta) regMuta.lookup("Muta Remota");
+        } catch (RemoteException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        }catch (NotBoundException ex){
+            System.out.println("Error al encontrar Objeto remoto");
+        }
+    }
     private void addsListener() {
         MenuLlistener menuLlistener= new MenuLlistener(this);
         this.jMenuItem_newGen.addActionListener(menuLlistener);

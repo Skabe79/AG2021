@@ -1,0 +1,1585 @@
+package GUI;
+
+import TCP.AbrirMatriz;
+import TCP.GeneticoTCP_Thread;
+import TCP.IndividuoTCP;
+import TCP_Hibrido.GeneradorMatrices;
+import TCP_Hibrido.GeneticoTCP_Hibrido_thread;
+import TCP_Hibrido.IndividuoTCP_Hibrido;
+import TRESSAT.Genetico3SAT;
+import TRESSAT.Individuo3SAT;
+import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.util.Pair;
+import javax.imageio.ImageIO;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.filechooser.FileFilter;
+import org.jfree.ui.ExtensionFileFilter;
+import org.jfree.ui.action.ActionButton;
+
+/**
+ *
+ * @author skabe
+ */
+public class Principal extends javax.swing.JFrame {
+
+    /**
+     * Creates new form Principal
+     */
+    private ImageIcon iconPrincipal;
+    private ImageIcon iconNew;
+    private ImageIcon iconOpen;
+    private ImageIcon iconSave;
+    private JFrameNuevoGen frameNuevoGen;
+    private int numGens;
+    private int tamPob;
+    private double probMuta;
+    private String seleccion;
+    private String tipoGenetico;
+    private Semaphore semoforo,semaforoGrafica;
+    private File parametros=null;
+    private Genetico3SAT genetico3SAT;
+    private GeneticoTCP_Thread geneticoTCP;
+    private GeneticoTCP_Hibrido_thread geneticoTCP_Hibrido;
+    private int [][] matriz=null;
+    private int inicial_TCP;
+    private double[][] matrizInclinaciones;
+    private int[][] matrizPesos;
+    private boolean terminado=false;
+    private boolean abrir=false;
+    private boolean nuevo=true;
+    private boolean graficar=false;
+    private boolean pause=false;
+    private DefaultComboBoxModel<String> boxModel=new DefaultComboBoxModel<>(new String[]{"Aleatoria", "Por Ruleta"});
+    
+    private JPanel_hilos jp;
+    public Principal() {
+        setIcons();
+        //jp=new JPanel_hilos();
+        //jp.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        initComponents();
+        addsListener();
+        //hilos();
+    }
+    
+    private void addsListener() {
+        MenuLlistener menuLlistener= new MenuLlistener(this);
+        this.jMenuItem_newGen.addActionListener(menuLlistener);
+        this.jMenuItem_OpenGen.addActionListener(menuLlistener);
+        this.jMenuItem_SaveGen.addActionListener(menuLlistener);
+    }
+    private void setIcons(){
+        Image aux1= new ImageIcon(getClass().getResource("/iconos/Logo.png")).getImage();
+        Image newAux1= aux1.getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        iconPrincipal= new ImageIcon(newAux1);
+        aux1= new ImageIcon(getClass().getResource("/iconos/logoAbrir.png")).getImage();
+        newAux1= aux1.getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        iconOpen=new ImageIcon(newAux1);
+        aux1= new ImageIcon(getClass().getResource("/iconos/nuevo.png")).getImage();
+        newAux1= aux1.getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        iconNew=new ImageIcon(newAux1);
+        aux1= new ImageIcon(getClass().getResource("/iconos/saveLogo.png")).getImage();
+        newAux1= aux1.getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        iconSave=new ImageIcon(newAux1);
+    }
+    
+    protected void saveGen(){
+        JFileChooser seleccion= new JFileChooser();
+        seleccion.setDialogTitle("GUARDAR Algoritmo genetico ");
+        seleccion.setDialogType(JFileChooser.SAVE_DIALOG);
+        //seleccion.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        FileFilter file1=null;
+        seleccion.setAcceptAllFileFilterUsed(false);
+        switch (this.getTipoGenetico()){
+            case "Binario":
+                file1= new ExtensionFileFilter("Genetico binario", "binar");
+                seleccion.setSelectedFile(new File("EjemploBinario.binar"));
+                break;
+            case "N Damas":
+                file1= new ExtensionFileFilter("Genetico N Damas", "ndm");
+                seleccion.setSelectedFile(new File("EjemploNDamas.ndm"));
+                break;
+            case "TCP":
+                file1= new ExtensionFileFilter("Genetico TCP", "tcp");
+                seleccion.setSelectedFile(new File("EjemploTCP.tcp"));
+                break;
+            case "3 SAT":                
+                file1= new ExtensionFileFilter("Genetico 3SAT", "sat");
+                seleccion.setSelectedFile(new File("Ejemplo3SAT.sat"));
+                break;
+            case "TCP Hibrido":
+                file1= new ExtensionFileFilter("Genetico TCP Hibrido", "tcph");
+                seleccion.setSelectedFile(new File("EjemploTCPHibrido.tcph"));
+            default:
+                seleccion.setAcceptAllFileFilterUsed(true);
+                seleccion.setSelectedFile(new File("Ejemplo.sat"));
+        }
+        seleccion.addChoosableFileFilter(file1);
+        int respuesta= seleccion.showSaveDialog(null);
+        File archivo=null;
+        switch(respuesta){ 
+            case JFileChooser.APPROVE_OPTION:
+                archivo = seleccion.getSelectedFile();
+                switch (getTipoGenetico()){
+                    case "Binario":
+                        saveGenBinario(archivo);
+                        break;
+                    case "N Damas":
+                        saveGenNDamas(archivo);
+                        break;
+                    case "TCP":
+                        saveGenTCP(archivo);
+                        break;
+                    case "3 SAT": 
+                        saveGen3SAT(archivo);
+                        break;
+                    case "TCP Hibrido":
+                        saveGenTCP_Hibrido(archivo);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case JFileChooser.CANCEL_OPTION:
+                System.out.println("Cancelado");
+                break;
+            default :
+                System.out.println("Error");
+                break;
+        }        
+    }
+    protected void abrirGen(){
+        JFileChooser file = new JFileChooser();
+        FileFilter file1= new ExtensionFileFilter("Genetico 3SAT", "sat");
+        FileFilter file2= new ExtensionFileFilter("Genetico N Damas", "ndm");
+        FileFilter file3= new ExtensionFileFilter("Genetico binario", "binar");
+        FileFilter file4= new ExtensionFileFilter("Genetico TCP", "tcp");
+        file.addChoosableFileFilter(file1);
+        file.addChoosableFileFilter(file2);
+        file.addChoosableFileFilter(file3);
+        file.addChoosableFileFilter(file4);
+        file.setAcceptAllFileFilterUsed(false);
+        file.showOpenDialog(null);
+        //abrimos el archivo seleccionado
+        File abre = file.getSelectedFile();
+        if (abre != null) {
+            BufferedReader br = null;
+            try {
+                StringTokenizer tokenizer;
+                String linea;
+                br = new BufferedReader(new FileReader(abre));
+                linea=br.readLine();
+                this.tipoGenetico=linea;
+                switch (this.getTipoGenetico()){
+                    case "Binario":
+                        abrirGenBinario(abre);
+                        break;
+                    case "N Damas":
+                        abrirGenNDamas(abre);
+                        break;
+                    case "TCP":
+                        abrirGenTCP(abre);
+                        break;
+                    case "3 SAT":
+                        abrirGen3SAT(abre);
+                        break;
+                    default:
+                        break;
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            } finally {
+                try {
+                    br.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null,
+                    "\nNo se ha encontrado el archivo",
+                    "ADVERTENCIA!!!", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    protected void newGen(){
+        frameNuevoGen= new JFrameNuevoGen(this);
+        frameNuevoGen.setVisible(true);
+    }
+    protected void datosNewGen(ArrayList<Object> recived){
+        if ((int) recived.get(0)==1) {
+            this.tipoGenetico=(String)recived.get(1);
+            this.numGens=(int)recived.get(2);
+            this.tamPob =(int) recived.get(3);
+            this.probMuta= (double) recived.get(4);
+            this.seleccion= (String) recived.get(5);
+            iniciarDesdeNewGen();
+        }else{
+            JOptionPane.showMessageDialog(this,"Se cancelo la creacion del nuevo Genetico");
+        }
+    }
+    public void terminoEvol(){
+        nuevo=false;
+        terminado=true;
+        jButton_StartGen.setEnabled(true);
+        jMenuItem_SaveGen.setEnabled(true);
+        actualizarDatosMejorInd();
+        try {
+            if(graficar){
+                Thread.sleep(1000);
+                graficar=false;
+                semaforoGrafica.acquire();
+            }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    private void iniciarDesdeNewGen(){
+        switch (this.getTipoGenetico()){
+            case "Binario":
+                executeBinario();
+                break;
+            case "N Damas":
+                executeNDamas();
+                break;
+            case "TCP":
+                executeTCP();
+                break;
+            case "3 SAT":                
+                execute3SAT();
+                break;
+            case "TCP Hibrido":
+                executeTCP_Hibrido();
+                break;
+            default:
+                
+        }
+        
+    }
+    private void executeBinario(){
+        
+    }
+    private void executeNDamas(){
+        
+    }
+    private void executeTCP(){
+        nuevo=true;
+        jButton_StartGen.setEnabled(false);
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarSC.setEnabled(false);
+        jButton_ModDatos.setEnabled(false);
+        jSpinner_NumGens.setEnabled(false);
+        jSpinner_TamPob.setEnabled(false);
+        jSpinner_ProbMuta.setEnabled(false);
+        jComboBox_TipoSeleccion.setEnabled(false);
+        semoforo= new Semaphore(1);
+        jLabel_TCP.setText("Ese genetico necesita una matriz base para funcionar, favor de cargarlas:");
+        jButton_TCP=new JButton();
+        jButton_TCP.setText("Cargar matriz");
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_TCP)
+                    .addComponent(jLabel_TCP))
+                .addContainerGap(373, Short.MAX_VALUE))
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel_TCP)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton_TCP)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        if(jButton_TCP.getActionListeners().length==0){
+            jButton_TCP.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    setMatriz(AbrirMatriz.abrirMatriz());
+                    if (getMatriz() != null) {
+                        pedirNinicialTCP();
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "\nNo se ha encontrado el archivo",
+                                "ADVERTENCIA!!!", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            });
+        }
+    }
+    private void executeTCP_Hibrido(){
+        nuevo=true;
+        jButton_StartGen.setEnabled(false);
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarSC.setEnabled(false);
+        jButton_ModDatos.setEnabled(false);
+        jSpinner_NumGens.setEnabled(false);
+        jSpinner_TamPob.setEnabled(false);
+        jSpinner_ProbMuta.setEnabled(false);
+        jComboBox_TipoSeleccion.setEnabled(false);
+        semoforo= new Semaphore(1);
+        jLabel_TCP.setText("Ese genetico necesita un archivo .mtzm que contiene 2 matrices base para funcionar, favor de cargarlas:");
+        jButton_TCP=new JButton();
+        jButton_TCP.setText("Cargar matrices");
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_TCP)
+                    .addComponent(jLabel_TCP))
+                .addContainerGap(373, Short.MAX_VALUE))
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel_TCP)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton_TCP)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        if(jButton_TCP.getActionListeners().length==0){
+            jButton_TCP.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    Pair<double[][],int[][]> respuesta= GeneradorMatrices.abrirArchivos();
+                    matrizPesos=respuesta.getValue();
+                    matrizInclinaciones=respuesta.getKey();
+                    if (matrizPesos != null && matrizInclinaciones!=null) {
+                        pedirNinicialTCP_Hibrido();
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "\nNo se ha encontrado el archivo",
+                                "ADVERTENCIA!!!", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            });
+        }
+    }
+    private void pedirNinicialTCP_Hibrido(){
+        jPanel_Extras.removeAll();
+        jLabel_TCP.setText("Ahora necesita ingresar el nodo inicial para este genetico:");
+        jSpinner_TCP.setModel(new javax.swing.SpinnerNumberModel(0, 0, matrizPesos.length-1, 1));
+        jButton_TCP= new JButton();
+        jButton_TCP.setText("Ingresar Inicial");
+        jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_TCP)
+                    .addComponent(jLabel_TCP)
+                    .addComponent(jSpinner_TCP))
+                .addContainerGap(373, Short.MAX_VALUE))
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel_TCP)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSpinner_TCP)
+                //.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton_TCP)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel_Extras.updateUI();
+        jButton_TCP.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                jPanel_Extras.removeAll();
+                jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+                javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+                jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+                jPanel_ExtrasLayout.setHorizontalGroup(
+                    jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGap(0, 786, Short.MAX_VALUE)
+                );
+                jPanel_ExtrasLayout.setVerticalGroup(
+                    jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGap(0, 215, Short.MAX_VALUE)
+                );
+                
+                jPanel_Extras.updateUI();
+                inicial_TCP=(int) jSpinner_TCP.getValue();
+                jButton_StartGen.setEnabled(true);
+            }
+        });
+    }
+    private void pedirNinicialTCP(){
+        jPanel_Extras.removeAll();
+        jLabel_TCP.setText("Ahora necesita ingresar el nodo inicial para este genetico:");
+        jSpinner_TCP.setModel(new javax.swing.SpinnerNumberModel(0, 0, matriz.length-1, 1));
+        jButton_TCP= new JButton();
+        jButton_TCP.setText("Ingresar Inicial");
+        jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_TCP)
+                    .addComponent(jLabel_TCP)
+                    .addComponent(jSpinner_TCP))
+                .addContainerGap(373, Short.MAX_VALUE))
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel_TCP)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSpinner_TCP)
+                //.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton_TCP)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel_Extras.updateUI();
+        jButton_TCP.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                jPanel_Extras.removeAll();
+                jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+                javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+                jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+                jPanel_ExtrasLayout.setHorizontalGroup(
+                    jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGap(0, 786, Short.MAX_VALUE)
+                );
+                jPanel_ExtrasLayout.setVerticalGroup(
+                    jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGap(0, 215, Short.MAX_VALUE)
+                );
+                
+                jPanel_Extras.updateUI();
+                inicial_TCP=(int) jSpinner_TCP.getValue();
+                jButton_StartGen.setEnabled(true);
+            }
+        });
+    }
+    private void execute3SAT(){
+        nuevo=true;
+        jButton_StartGen.setEnabled(false);
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarSC.setEnabled(false);
+        jButton_ModDatos.setEnabled(false);
+        jSpinner_NumGens.setEnabled(false);
+        jSpinner_TamPob.setEnabled(false);
+        jSpinner_ProbMuta.setEnabled(false);
+        jComboBox_TipoSeleccion.setEnabled(false);
+        semoforo= new Semaphore(1);
+        jLabel_3SAT.setText("Este genetico necesita parametros para funcionar, favor de cargarlas:");
+        jButton_3SAT.setText("Cargar parametros");
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_3SAT)
+                    .addComponent(jLabel_3SAT))
+                .addContainerGap(373, Short.MAX_VALUE))
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_ExtrasLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel_3SAT)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton_3SAT)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        if(jButton_3SAT.getActionListeners().length==0){
+            jButton_3SAT.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser file = new JFileChooser();
+                    file.setCurrentDirectory(new File(System.getProperty("user.dir")));
+                    file.showOpenDialog(file);
+                    //abrimos el archivo seleccionado
+                    parametros = file.getSelectedFile();
+
+                    if (parametros != null) {
+                        jPanel_Extras.removeAll();
+                        jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+                        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+                        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+                        jPanel_ExtrasLayout.setHorizontalGroup(
+                            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGap(0, 786, Short.MAX_VALUE)
+                        );
+                        jPanel_ExtrasLayout.setVerticalGroup(
+                            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGap(0, 215, Short.MAX_VALUE)
+                        );
+                        jPanel_Extras.updateUI();
+                        jButton_StartGen.setEnabled(true);
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "\nNo se ha encontrado el archivo",
+                                "ADVERTENCIA!!!", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            });
+        }
+    }
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    private void initComponents() {
+
+        jPanel_Extras = new javax.swing.JPanel();
+        jPanel_Principales = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        jButton_ModDatos = new javax.swing.JButton();
+        jSpinner_NumGens = new javax.swing.JSpinner();
+        jSpinner_TamPob = new javax.swing.JSpinner();
+        jSpinner_ProbMuta = new javax.swing.JSpinner();
+        jComboBox_TipoSeleccion = new javax.swing.JComboBox<>();
+        jButton_ContinuarCC = new javax.swing.JButton();
+        jButton_ContinuarSC = new javax.swing.JButton();
+        jButton_StartGen = new javax.swing.JButton();
+        jLabel5 = new javax.swing.JLabel();
+        jButton_Pause = new javax.swing.JButton();
+        jPanel_Grafica = new javax.swing.JPanel();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel_MejorIndividuo = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTextArea_Genotipo = new javax.swing.JTextArea();
+        jLabel_MejorFitness = new javax.swing.JLabel();
+        jTabbedPane_hilos = new javax.swing.JTabbedPane();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        jMenuItem_newGen = new javax.swing.JMenuItem();
+        jMenuItem_OpenGen = new javax.swing.JMenuItem();
+        jMenuItem_SaveGen = new javax.swing.JMenuItem();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Geneticos");
+        setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        setIconImage(iconPrincipal.getImage());
+        setResizable(false);
+        setSize(new java.awt.Dimension(800, 1000));
+
+        jPanel_Extras.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+
+        javax.swing.GroupLayout jPanel_ExtrasLayout = new javax.swing.GroupLayout(jPanel_Extras);
+        jPanel_Extras.setLayout(jPanel_ExtrasLayout);
+        jPanel_ExtrasLayout.setHorizontalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 786, Short.MAX_VALUE)
+        );
+        jPanel_ExtrasLayout.setVerticalGroup(
+            jPanel_ExtrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+
+        jPanel_Principales.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+
+        jLabel1.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        jLabel1.setText("Número de Generaciones:");
+
+        jLabel2.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        jLabel2.setText("Tamaño de Población:");
+
+        jLabel3.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        jLabel3.setText("Probabilidad de Muta:");
+
+        jLabel4.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        jLabel4.setText("Tipo de Selección:");
+
+        jButton_ModDatos.setFont(new java.awt.Font("Lucida Fax", 1, 14)); // NOI18N
+        jButton_ModDatos.setText("Modificar Datos");
+        jButton_ModDatos.setEnabled(false);
+        jButton_ModDatos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton_ModDatosActionPerformed(evt);
+            }
+        });
+
+        jSpinner_NumGens.setModel(new javax.swing.SpinnerNumberModel(1, 1, 2147483647, 100));
+        jSpinner_NumGens.setEnabled(false);
+
+        jSpinner_TamPob.setModel(new javax.swing.SpinnerNumberModel(10, 2, 2147483647, 10));
+        jSpinner_TamPob.setEnabled(false);
+
+        jSpinner_ProbMuta.setModel(new javax.swing.SpinnerNumberModel(0.0d, 0.0d, 1.0d, 0.01d));
+        jSpinner_ProbMuta.setEnabled(false);
+
+        jComboBox_TipoSeleccion.setModel(boxModel);
+        jComboBox_TipoSeleccion.setEnabled(false);
+
+        jButton_ContinuarCC.setText("Actualizar y continuar");
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarCC.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton_ContinuarCCActionPerformed(evt);
+            }
+        });
+
+        jButton_ContinuarSC.setText("Continuar sin cambios");
+        jButton_ContinuarSC.setEnabled(false);
+        jButton_ContinuarSC.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton_ContinuarSCActionPerformed(evt);
+            }
+        });
+
+        jButton_StartGen.setText("Iniciar Genetico");
+        jButton_StartGen.setEnabled(false);
+        jButton_StartGen.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton_StartGenActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        jLabel5.setText("Agoritmo Genetico.");
+
+        jButton_Pause.setText("Pausar");
+        jButton_Pause.setEnabled(false);
+        jButton_Pause.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton_PauseActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel_PrincipalesLayout = new javax.swing.GroupLayout(jPanel_Principales);
+        jPanel_Principales.setLayout(jPanel_PrincipalesLayout);
+        jPanel_PrincipalesLayout.setHorizontalGroup(
+            jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel_PrincipalesLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(jPanel_PrincipalesLayout.createSequentialGroup()
+                        .addComponent(jButton_StartGen)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton_Pause, javax.swing.GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton_ContinuarSC)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton_ContinuarCC, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel_PrincipalesLayout.createSequentialGroup()
+                        .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel1)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel3)
+                            .addComponent(jLabel4)
+                            .addComponent(jLabel5))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jButton_ModDatos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jComboBox_TipoSeleccion, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jSpinner_ProbMuta)
+                            .addComponent(jSpinner_TamPob)
+                            .addComponent(jSpinner_NumGens))))
+                .addGap(22, 22, 22))
+        );
+        jPanel_PrincipalesLayout.setVerticalGroup(
+            jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel_PrincipalesLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton_ModDatos)
+                    .addComponent(jLabel5))
+                .addGap(9, 9, 9)
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jSpinner_NumGens, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel2)
+                    .addComponent(jSpinner_TamPob, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel3)
+                    .addComponent(jSpinner_ProbMuta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(jComboBox_TipoSeleccion, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel_PrincipalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton_ContinuarCC)
+                    .addComponent(jButton_ContinuarSC)
+                    .addComponent(jButton_StartGen)
+                    .addComponent(jButton_Pause))
+                .addContainerGap())
+        );
+
+        jPanel_Grafica.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+
+        javax.swing.GroupLayout jPanel_GraficaLayout = new javax.swing.GroupLayout(jPanel_Grafica);
+        jPanel_Grafica.setLayout(jPanel_GraficaLayout);
+        jPanel_GraficaLayout.setHorizontalGroup(
+            jPanel_GraficaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+        jPanel_GraficaLayout.setVerticalGroup(
+            jPanel_GraficaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 411, Short.MAX_VALUE)
+        );
+
+        jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+
+        jLabel_MejorIndividuo.setText("El mejor Individuo de la generacion es:");
+
+        jTextArea_Genotipo.setEditable(false);
+        jTextArea_Genotipo.setColumns(20);
+        jTextArea_Genotipo.setRows(5);
+        jScrollPane1.setViewportView(jTextArea_Genotipo);
+
+        jLabel_MejorFitness.setText("Su fitness:");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jScrollPane1)
+                        .addContainerGap())
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jLabel_MejorIndividuo)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabel_MejorFitness)
+                        .addGap(160, 160, 160))))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel_MejorIndividuo)
+                    .addComponent(jLabel_MejorFitness))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jMenu1.setText("File");
+        jMenu1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+
+        jMenuItem_newGen.setIcon(iconNew);
+        jMenuItem_newGen.setText("New Genetic Algoritm");
+        jMenu1.add(jMenuItem_newGen);
+
+        jMenuItem_OpenGen.setIcon(iconOpen);
+        jMenuItem_OpenGen.setText("Open Genetic Algoritm");
+        jMenu1.add(jMenuItem_OpenGen);
+
+        jMenuItem_SaveGen.setIcon(iconSave);
+        jMenuItem_SaveGen.setText("Save Genetic Algoritm");
+        jMenuItem_SaveGen.setEnabled(false);
+        jMenu1.add(jMenuItem_SaveGen);
+
+        jMenuBar1.add(jMenu1);
+
+        setJMenuBar(jMenuBar1);
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jTabbedPane_hilos)
+                    .addComponent(jPanel_Grafica, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jPanel_Principales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jPanel_Extras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel_Principales, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel_Extras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jTabbedPane_hilos, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(13, 13, 13)
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel_Grafica, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+        );
+
+        pack();
+    }// </editor-fold>                        
+
+    private void jButton_ModDatosActionPerformed(java.awt.event.ActionEvent evt) {                                                 
+        try {
+            if(!terminado){
+                semoforo.acquire(); 
+            }
+            if(graficar){
+                graficar=false;
+                semaforoGrafica.acquire();
+            }
+            jSpinner_NumGens.setEnabled(true);
+            jSpinner_TamPob.setEnabled(true);
+            jSpinner_ProbMuta.setEnabled(true);
+            jComboBox_TipoSeleccion.setEnabled(true);
+            jButton_ContinuarSC.setEnabled(true);
+            jButton_ContinuarCC.setEnabled(true);
+            jMenuItem_SaveGen.setEnabled(true);
+            jButton_Pause.setEnabled(false);
+            actualizarDatosMejorInd();
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }                                                
+    private void startGen3SAT() {
+        if(abrir){
+            genetico3SAT.setName("Genetico "+this.getTipoGenetico());
+            genetico3SAT.start();
+            jButton_StartGen.setEnabled(false);
+            jButton_Pause.setEnabled(true);
+            abrir=false;
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        }else if(nuevo){
+            genetico3SAT= new Genetico3SAT(numGens, tamPob, probMuta, parametros, semoforo, seleccion, this);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            this.jButton_Pause.setEnabled(true);
+            jButton_ModDatos.setEnabled(true);
+            actualizarDatosMejorInd();
+            getGenetico3SAT().setName("Genetico "+this.getTipoGenetico());
+            getGenetico3SAT().start();
+            jButton_StartGen.setEnabled(false);
+            iniciarGrafica();
+            jButton_Pause.setEnabled(true);
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        }else if(terminado){
+            this.numGens=genetico3SAT.getNumGen();
+            this.tamPob=genetico3SAT.getTamPoblacion();
+            this.seleccion=genetico3SAT.getTipoSeleccion();
+            ArrayList<Individuo3SAT> poblacionActual= genetico3SAT.getPoblacionActual();
+            int rango= genetico3SAT.getRango();
+            int numInstancias=genetico3SAT.getNumInstancias();
+            int numElementos= genetico3SAT.getNumElementos();
+            this.probMuta=genetico3SAT.getProbMutal();
+            int[][] instancias= genetico3SAT.getInstancias();
+            ArrayList<Integer> fitnessGeneracional= genetico3SAT.getFitnessGeneracional();
+            genetico3SAT= new Genetico3SAT(numGens, tamPob, seleccion, poblacionActual, rango, numInstancias, numElementos, probMuta, instancias, fitnessGeneracional,this.semoforo, genetico3SAT.getPrincipal());
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            genetico3SAT.setName("Genetico continuacion "+this.getTipoGenetico());
+            genetico3SAT.start();
+            this.terminado=false;
+            jButton_ModDatos.setEnabled(true);
+            jButton_StartGen.setEnabled(false);
+            jSpinner_NumGens.setEnabled(false);
+            jSpinner_TamPob.setEnabled(false);
+            jSpinner_ProbMuta.setEnabled(false);
+            jComboBox_TipoSeleccion.setEnabled(false);
+            jMenuItem_SaveGen.setEnabled(false);
+            jButton_Pause.setEnabled(true);
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        }
+    }
+
+    private void startGenTCP() {
+        if (abrir) {
+            geneticoTCP.setName("Genetico "+this.getTipoGenetico());
+            geneticoTCP.start();
+            jButton_StartGen.setEnabled(false);
+            abrir=false;
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        } else if(nuevo) {
+            geneticoTCP= new GeneticoTCP_Thread(numGens, tamPob, probMuta, inicial_TCP, matriz, seleccion, new ArrayList<>(), semoforo, this);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            jButton_ModDatos.setEnabled(true);
+            actualizarDatosMejorInd();
+            getGeneticoTCP().setName("Genetico "+this.getTipoGenetico());
+            getGeneticoTCP().start();
+            jButton_StartGen.setEnabled(false);
+            iniciarGrafica();
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        } else if(terminado){
+            this.numGens=geneticoTCP.getNumGen();
+            this.tamPob=geneticoTCP.getTamPoblacion();
+            this.seleccion=geneticoTCP.getTipoSeleccion();
+            ArrayList<IndividuoTCP> poblacionActual= geneticoTCP.getPoblacionActual();
+            this.probMuta=geneticoTCP.getProbMuta();
+            ArrayList<Long> fitnessGeneracional= geneticoTCP.getFitnessGeneracional();
+            geneticoTCP= new GeneticoTCP_Thread(numGens,tamPob,probMuta,inicial_TCP,matriz,seleccion,geneticoTCP.getPoblacionActual(),fitnessGeneracional,semoforo,this);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            geneticoTCP.setName("Genetico continuacion "+this.getTipoGenetico());
+            geneticoTCP.start();
+            this.terminado=false;
+            jButton_ModDatos.setEnabled(true);
+            jButton_StartGen.setEnabled(false);
+            jSpinner_NumGens.setEnabled(false);
+            jSpinner_TamPob.setEnabled(false);
+            jSpinner_ProbMuta.setEnabled(false);
+            jComboBox_TipoSeleccion.setEnabled(false);
+            jMenuItem_SaveGen.setEnabled(false);
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        }
+    }
+
+    private void startGenTCP_Hibrido(){
+        if (abrir) {
+            
+        } else if(nuevo) {
+            geneticoTCP_Hibrido =new GeneticoTCP_Hibrido_thread(numGens, tamPob, probMuta, inicial_TCP,matrizInclinaciones, matrizPesos, seleccion, new ArrayList<>(), semoforo, this);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            jButton_ModDatos.setEnabled(true);
+            actualizarDatosMejorInd();
+            getGeneticoTCP_Hibrido().setName("Genetico "+this.getTipoGenetico());
+            getGeneticoTCP_Hibrido().start();
+            jButton_StartGen.setEnabled(false);
+            iniciarGrafica();
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        } else if(terminado){
+            this.numGens=geneticoTCP_Hibrido.getNumGen();
+            this.tamPob=geneticoTCP_Hibrido.getTamPoblacion();
+            this.seleccion=geneticoTCP_Hibrido.getTipoSeleccion();
+            ArrayList<IndividuoTCP_Hibrido> poblacionActual= geneticoTCP_Hibrido.getPoblacionActual();
+            this.probMuta=geneticoTCP_Hibrido.getProbMuta();
+            ArrayList<Double> fitnessGeneracional= geneticoTCP_Hibrido.getFitnessGeneracional();
+            geneticoTCP_Hibrido= new GeneticoTCP_Hibrido_thread(numGens,tamPob,probMuta,inicial_TCP,matrizInclinaciones,matrizPesos,seleccion,poblacionActual,fitnessGeneracional,semoforo,this);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            geneticoTCP_Hibrido.setName("Genetico continuacion "+this.getTipoGenetico());
+            geneticoTCP_Hibrido.start();
+            this.terminado=false;
+            jButton_ModDatos.setEnabled(true);
+            jButton_StartGen.setEnabled(false);
+            jSpinner_NumGens.setEnabled(false);
+            jSpinner_TamPob.setEnabled(false);
+            jSpinner_ProbMuta.setEnabled(false);
+            jComboBox_TipoSeleccion.setEnabled(false);
+            jMenuItem_SaveGen.setEnabled(false);
+            if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+            }
+        }
+    }
+    private void startGenNDamas() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void startGenBinario() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    private void jButton_StartGenActionPerformed(java.awt.event.ActionEvent evt) {                                                 
+        switch (tipoGenetico){
+            case "Binario":
+                startGenBinario();
+                break;
+            case "N Damas":
+                startGenNDamas();
+                break;
+            case "TCP":
+                startGenTCP();
+                break;
+            case "3 SAT":                
+                startGen3SAT();
+                break;
+            case "TCP Hibrido":
+                startGenTCP_Hibrido();
+                break;
+            default:
+        }
+        
+        
+        
+    }                                                
+
+    private void jButton_ContinuarSCActionPerformed(java.awt.event.ActionEvent evt) {                                                    
+        this.jSpinner_NumGens.setValue(numGens);
+        this.jSpinner_TamPob.setValue(tamPob);
+        this.jSpinner_ProbMuta.setValue(probMuta);
+        this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+        jButton_ModDatos.setEnabled(true);
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarSC.setEnabled(false);
+        jSpinner_NumGens.setEnabled(false);
+        jSpinner_TamPob.setEnabled(false);
+        jSpinner_ProbMuta.setEnabled(false);
+        jComboBox_TipoSeleccion.setEnabled(false);
+        jMenuItem_SaveGen.setEnabled(false);
+        jButton_Pause.setEnabled(true);
+        if(!terminado){semoforo.release();}
+        if(!graficar){
+            graficar=true;
+            semaforoGrafica.release();
+        }
+    }                                                   
+
+    private void jButton_ContinuarCCActionPerformed(java.awt.event.ActionEvent evt) {                                                    
+        numGens=(int)jSpinner_NumGens.getValue();
+        tamPob=(int)jSpinner_TamPob.getValue();
+        probMuta=(double)jSpinner_ProbMuta.getValue();
+        seleccion=(String)jComboBox_TipoSeleccion.getSelectedItem();
+        switch (tipoGenetico){
+            case "Binario":
+                break;
+            case "N Damas":
+                break;
+            case "TCP":
+                geneticoTCP.setNumGen(numGens);
+                geneticoTCP.setTamPoblacion(tamPob);
+                geneticoTCP.setProbMuta(probMuta);
+                geneticoTCP.setTipoSeleccion(seleccion);
+                break;
+            case "3 SAT":                
+                getGenetico3SAT().setNumGen(numGens);
+                getGenetico3SAT().setProbMutal(probMuta);
+                getGenetico3SAT().setTamPoblacion(tamPob);
+                getGenetico3SAT().setTipoSeleccion(seleccion);
+                break;
+            case "TCP Hibrido":
+                getGeneticoTCP_Hibrido().setNumGen(numGens);
+                getGeneticoTCP_Hibrido().setTamPoblacion(tamPob);
+                getGeneticoTCP_Hibrido().setProbMuta(probMuta);
+                getGeneticoTCP_Hibrido().setTipoSeleccion(seleccion);
+                break;
+            default:
+        }
+        jButton_ModDatos.setEnabled(true);
+        jButton_ContinuarCC.setEnabled(false);
+        jButton_ContinuarSC.setEnabled(false);
+        jSpinner_NumGens.setEnabled(false);
+        jSpinner_TamPob.setEnabled(false);
+        jSpinner_ProbMuta.setEnabled(false);
+        jComboBox_TipoSeleccion.setEnabled(false);
+        jMenuItem_SaveGen.setEnabled(false);
+        jButton_Pause.setEnabled(true);
+        if(!terminado){semoforo.release();}
+        if(!graficar){
+                graficar=true;
+                semaforoGrafica.release();
+        }
+    }                                                   
+
+    private void jButton_PauseActionPerformed(java.awt.event.ActionEvent evt) {                                              
+        try {
+            if(pause == false){
+                semoforo.acquire();
+                semaforoGrafica.acquire();
+                jButton_ModDatos.setEnabled(false);
+                jButton_Pause.setText("Reanudar");
+                pause=true;
+            }else{
+                semoforo.release();
+                semaforoGrafica.release();
+                jButton_ModDatos.setEnabled(true);
+                jButton_Pause.setText("Pause");
+                pause=false;
+            }
+        }catch(InterruptedException ex){
+            ex.printStackTrace();
+        }
+    }                                             
+    
+    private void iniciarGrafica(){
+        this.semaforoGrafica= new Semaphore(1);
+        GraficaHilo hiloG=new GraficaHilo(this,this.semaforoGrafica);
+        this.graficar=true;
+        hiloG.setName("HiloGrafica");
+        hiloG.start();
+    }
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new Principal().setVisible(true);
+                
+            }
+        });
+    }
+
+    // Variables declaration - do not modify                     
+    private javax.swing.JButton jButton_ContinuarCC;
+    private javax.swing.JButton jButton_ContinuarSC;
+    private javax.swing.JButton jButton_ModDatos;
+    private javax.swing.JButton jButton_Pause;
+    private javax.swing.JButton jButton_StartGen;
+    private javax.swing.JComboBox<String> jComboBox_TipoSeleccion;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel_MejorFitness;
+    private javax.swing.JLabel jLabel_MejorIndividuo;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem_OpenGen;
+    private javax.swing.JMenuItem jMenuItem_SaveGen;
+    private javax.swing.JMenuItem jMenuItem_newGen;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel_Extras;
+    private javax.swing.JPanel jPanel_Grafica;
+    private javax.swing.JPanel jPanel_Principales;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JSpinner jSpinner_NumGens;
+    private javax.swing.JSpinner jSpinner_ProbMuta;
+    private javax.swing.JSpinner jSpinner_TamPob;
+    private javax.swing.JTabbedPane jTabbedPane_hilos;
+    private javax.swing.JTextArea jTextArea_Genotipo;
+    // End of variables declaration                   
+    private JLabel jLabel_3SAT=new JLabel();
+    private JButton jButton_3SAT=new JButton();
+    private JLabel jLabel_TCP=new JLabel();
+    private JButton jButton_TCP=new JButton();
+    private JSpinner jSpinner_TCP=new JSpinner();
+    /**
+     * @return the genetico
+     */
+    public Genetico3SAT getGenetico3SAT() {
+        return genetico3SAT;
+    }
+    
+    /**
+     * @return the jPanel_Grafica
+     */
+    public javax.swing.JPanel getjPanel_Grafica() {
+        return jPanel_Grafica;
+    }
+
+    /**
+     * @return the tipoGenetico
+     */
+    public String getTipoGenetico() {
+        return tipoGenetico;
+    }
+
+    /**
+     * @return the geneticoTCP
+     */
+    public GeneticoTCP_Thread getGeneticoTCP() {
+        return geneticoTCP;
+    }
+
+    /**
+     * @return the matriz
+     */
+    public int[][] getMatriz() {
+        return matriz;
+    }
+
+    /**
+     * @param matriz the matriz to set
+     */
+    public void setMatriz(int[][] matriz) {
+        this.matriz = matriz;
+    }    
+
+    private void saveGen3SAT(File archivo) {
+        FileWriter file= null;
+        try {
+            file = new FileWriter(archivo);
+            BufferedWriter bw = new BufferedWriter(file);
+            String linea=numGens+","+tamPob+","+probMuta+","+this.seleccion+"";
+            bw.write(this.getTipoGenetico());
+            bw.newLine();
+            bw.write(linea);
+            bw.newLine();
+            linea="";
+            for (int i = 0; i < this.getGenetico3SAT().getFitnessGeneracional().size(); i++) {
+                linea=linea+this.getGenetico3SAT().getFitnessGeneracional().get(i)+",";
+            }   bw.write(linea);
+            bw.newLine();
+            linea=genetico3SAT.getRango()+","+genetico3SAT.getNumInstancias()+","+genetico3SAT.getNumElementos();
+            bw.write(linea);
+            bw.newLine();
+            for (int i = 0; i < genetico3SAT.getInstancias().length; i++) {
+                linea="";
+                for (int j = 0; j < genetico3SAT.getInstancias()[0].length; j++) {
+                    linea=linea+genetico3SAT.getInstancias()[i][j]+" ";
+                }
+                bw.write(linea);
+                bw.newLine();
+            }   ArrayList<Individuo3SAT> poblacion=genetico3SAT.getPoblacionActual();
+            for (int i = 0; i < poblacion.size(); i++) {
+                linea="";
+                for (int j = 0; j < poblacion.get(i).getGenotipo().length; j++) {
+                    linea=linea+poblacion.get(i).getGenotipo()[j]+",";
+                }
+                bw.write(linea);
+                bw.newLine();
+            }   bw.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                file.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    private void saveGenTCP_Hibrido(File archivo){
+        FileWriter file= null;
+        try {
+            file = new FileWriter(archivo);
+            BufferedWriter bw = new BufferedWriter(file);
+            String linea=numGens+","+tamPob+","+probMuta+","+this.seleccion+"";
+            bw.write(this.getTipoGenetico());
+            bw.newLine();
+            bw.write(linea);
+            bw.newLine();
+            linea="";
+            for (int i = 0; i < this.getGeneticoTCP().getFitnessGeneracional().size(); i++) {
+                linea=linea+this.getGeneticoTCP().getFitnessGeneracional().get(i)+",";
+            }   bw.write(linea);
+            bw.newLine();
+            linea=matriz.length+",";
+            bw.write(linea);
+            bw.newLine();
+            for (int i = 0; i < matriz.length; i++) {
+                linea="";
+                for (int j = 0; j < matriz[0].length; j++) {
+                    linea=linea+matriz[i][j]+",";
+                }
+                bw.write(linea);
+                bw.newLine();
+            }   
+            ArrayList<IndividuoTCP> poblacion=geneticoTCP.getPoblacionActual();
+            for (int i = 0; i < poblacion.size(); i++) {
+                linea="";
+                for (int j = 0; j < poblacion.get(i).getGenotipo().length; j++) {
+                    linea=linea+poblacion.get(i).getGenotipo()[j]+",";
+                }
+                bw.write(linea);
+            }   bw.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                file.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    private void saveGenTCP(File archivo) {
+        FileWriter file= null;
+        try {
+            file = new FileWriter(archivo);
+            BufferedWriter bw = new BufferedWriter(file);
+            String linea=numGens+","+tamPob+","+probMuta+","+this.seleccion+"";
+            bw.write(this.getTipoGenetico());
+            bw.newLine();
+            bw.write(linea);
+            bw.newLine();
+            linea="";
+            for (int i = 0; i < this.getGeneticoTCP_Hibrido().getFitnessGeneracional().size(); i++) {
+                linea=linea+this.getGeneticoTCP_Hibrido().getFitnessGeneracional().get(i)+",";
+            }   bw.write(linea);
+            bw.newLine();
+            linea=matrizPesos.length+",";
+            bw.write(linea);
+            bw.newLine();
+            for (int i = 0; i < matrizPesos.length; i++) {
+                linea="";
+                for (int j = 0; j < matrizPesos[0].length; j++) {
+                    linea=linea+matriz[i][j]+",";
+                }
+                bw.write(linea);
+                bw.newLine();
+            }   
+            ArrayList<IndividuoTCP> poblacion=geneticoTCP.getPoblacionActual();
+            for (int i = 0; i < poblacion.size(); i++) {
+                linea="";
+                for (int j = 0; j < poblacion.get(i).getGenotipo().length; j++) {
+                    linea=linea+poblacion.get(i).getGenotipo()[j]+",";
+                }
+                bw.write(linea);
+            }   bw.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                file.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    private void saveGenNDamas(File archivo) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void saveGenBinario(File archivo) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void abrirGenTCP(File abre) {
+        BufferedReader br = null;
+        try {
+            StringTokenizer tokenizer;
+            String linea;
+            br = new BufferedReader(new FileReader(abre));
+            linea=br.readLine();
+            this.tipoGenetico=linea;
+            linea=br.readLine();
+            tokenizer= new StringTokenizer(linea, ",");
+            this.numGens=Integer.parseInt(tokenizer.nextToken());
+            this.tamPob=Integer.parseInt(tokenizer.nextToken());
+            this.probMuta=Double.parseDouble(tokenizer.nextToken());
+            this.seleccion=tokenizer.nextToken();
+            linea=br.readLine();
+            tokenizer= new StringTokenizer(linea,",");
+            ArrayList<Long> fitnessGeneracional=new ArrayList<>();
+            while (tokenizer.hasMoreTokens()) {
+                fitnessGeneracional.add(Long.parseLong(tokenizer.nextToken()));
+            }   linea=br.readLine();
+            tokenizer=new StringTokenizer(linea, ",");
+            int numNodos= Integer.parseInt(tokenizer.nextToken());
+            this.matriz= new int[numNodos][numNodos];
+            for (int i = 0; i < numNodos; i++) {
+                linea= br.readLine();
+                tokenizer= new StringTokenizer(linea, ",");
+                for (int j = 0; j < numNodos; j++) {
+                    this.matriz[i][j]=Integer.parseInt(tokenizer.nextToken());
+                }
+            }   IndividuoTCP.setMatriz(matriz);
+            ArrayList<IndividuoTCP> poblacion= new ArrayList<>();
+            for (int i = 0; i < tamPob; i++) {
+                linea= br.readLine();
+                tokenizer= new StringTokenizer(linea, ",");
+                int[] aux= new int[numNodos];
+                for (int j = 0; j < numNodos; j++) {
+                    aux[j]=Integer.parseInt(tokenizer.nextToken());
+                    if(i==0 && j==0){
+                        IndividuoTCP.setInicial(aux[0]);
+                    }
+                }
+                poblacion.add(new IndividuoTCP(aux));
+            }   this.semoforo= new Semaphore(1);
+            this.inicial_TCP=poblacion.get(0).getGenotipo()[0];
+            this.geneticoTCP= new GeneticoTCP_Thread(numGens, tamPob, probMuta, inicial_TCP, matriz, seleccion, poblacion, fitnessGeneracional, semoforo, this);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            this.jButton_StartGen.setEnabled(true);
+            this.jButton_ModDatos.setEnabled(true);
+            abrir=true;
+            nuevo=false;
+            iniciarGrafica();
+            actualizarDatosMejorInd();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                br.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    private void abrirGenNDamas(File abre) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void abrirGenBinario(File abre) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void abrirGen3SAT(File abre) {
+        BufferedReader br = null;
+        try {
+            StringTokenizer tokenizer;
+            String linea;
+            br = new BufferedReader(new FileReader(abre));
+            linea=br.readLine();
+            this.tipoGenetico=linea;
+            linea=br.readLine();
+            tokenizer= new StringTokenizer(linea, ",");
+            this.numGens=Integer.parseInt(tokenizer.nextToken());
+            this.tamPob=Integer.parseInt(tokenizer.nextToken());
+            this.probMuta=Double.parseDouble(tokenizer.nextToken());
+            this.seleccion=tokenizer.nextToken();
+            linea=br.readLine();
+            tokenizer= new StringTokenizer(linea,",");
+            ArrayList<Integer> fitnessGeneracional=new ArrayList<>();
+            while (tokenizer.hasMoreTokens()) {
+                fitnessGeneracional.add(Integer.parseInt(tokenizer.nextToken()));
+            }   linea=br.readLine();
+            tokenizer=new StringTokenizer(linea, ",");
+            int rango= Integer.parseInt(tokenizer.nextToken());
+            int numInstancias= Integer.parseInt(tokenizer.nextToken());
+            int numElementos= Integer.parseInt(tokenizer.nextToken());
+            int [][] instancias= new int[numInstancias][numElementos];
+            for (int i = 0; i < numInstancias; i++) {
+                linea= br.readLine();
+                tokenizer= new StringTokenizer(linea, " ");
+                for (int j = 0; j < numElementos; j++) {
+                    instancias[i][j]=Integer.parseInt(tokenizer.nextToken());
+                }
+            }   Individuo3SAT.setInstancias(instancias);
+            ArrayList<Individuo3SAT> poblacion= new ArrayList<>();
+            for (int i = 0; i < tamPob; i++) {
+                linea= br.readLine();
+                tokenizer= new StringTokenizer(linea, ",");
+                int[] aux= new int[rango+1];
+                for (int j = 0; j < rango+1; j++) {
+                    aux[j]=Integer.parseInt(tokenizer.nextToken());
+                }
+                poblacion.add(new Individuo3SAT(aux));
+            }   semoforo= new Semaphore(1);
+            genetico3SAT= new Genetico3SAT(numGens, tamPob, seleccion, poblacion, rango, numInstancias, numElementos, probMuta, instancias, fitnessGeneracional,semoforo, this);
+            this.jSpinner_TamPob.setValue(tamPob);
+            this.jSpinner_NumGens.setValue(numGens);
+            this.jSpinner_ProbMuta.setValue(probMuta);
+            this.jComboBox_TipoSeleccion.setSelectedItem(seleccion);
+            this.jButton_StartGen.setEnabled(true);
+            this.jButton_ModDatos.setEnabled(true);
+            abrir=true;
+            nuevo=false;
+            iniciarGrafica();
+            actualizarDatosMejorInd();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                br.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    private void actualizarDatosMejorInd(){
+        switch (tipoGenetico){
+            case "3 SAT":
+                break;
+            case "TCP Hibrido":
+                this.jLabel_MejorFitness.setText("Su fitness: "+TCP_Hibrido.Herramientas.mejorPoblacion(getGeneticoTCP_Hibrido().getPoblacionActual()).getFitness());
+                this.jTextArea_Genotipo.setText(TCP_Hibrido.Herramientas.mejorPoblacion(getGeneticoTCP_Hibrido().getPoblacionActual()).toString());
+                break;
+            case "TCP":
+                break;
+            default:
+                break;
+        }
+    }
+    /**
+     * @return the geneticoTCP_Hibrido
+     */
+    public GeneticoTCP_Hibrido_thread getGeneticoTCP_Hibrido() {
+        return geneticoTCP_Hibrido;
+    }
+}

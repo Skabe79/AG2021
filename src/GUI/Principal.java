@@ -472,5 +472,19 @@ public class Principal extends javax.swing.JFrame {
     public ArrayList<JPanel_hilos> getHilos() {
         return hilos;
     }
+
+    /**
+     * @return the rMIMuta
+     */
+    public RMIMuta getrMIMuta() {
+        return rMIMuta;
+    }
+
+    /**
+     * @return the rMICruza
+     */
+    public RMICruza getrMICruza() {
+        return rMICruza;
+    }
     
 }

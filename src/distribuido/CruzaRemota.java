@@ -22,7 +22,7 @@ public class CruzaRemota extends  UnicastRemoteObject implements RMICruza{
         super();
     }
     @Override
-    public Individuo3SAT muta_3SAT(Individuo3SAT madre, Individuo3SAT padre, int[] mascara) throws RemoteException {
+    public Individuo3SAT cruza_3SAT(Individuo3SAT madre, Individuo3SAT padre, int[] mascara) throws RemoteException {
         int[] gen1 = new int[madre.getGenotipo().length];
         int[] gen2 = new int[madre.getGenotipo().length];
         
@@ -45,7 +45,7 @@ public class CruzaRemota extends  UnicastRemoteObject implements RMICruza{
     }
 
     @Override
-    public IndividuoTCP muta_TCP(IndividuoTCP madre, IndividuoTCP padre, int[] mascara) throws RemoteException {
+    public IndividuoTCP cruza_TCP(IndividuoTCP madre, IndividuoTCP padre, int[] mascara) throws RemoteException {
         int[] gen1 = new int[madre.getGenotipo().length];
         int[] gen2 = new int[madre.getGenotipo().length];
         IndividuoTCP res;
@@ -75,7 +75,7 @@ public class CruzaRemota extends  UnicastRemoteObject implements RMICruza{
     }
 
     @Override
-    public IndividuoTCP_Hibrido muta_TCP_Hibrido(IndividuoTCP_Hibrido madre, IndividuoTCP_Hibrido padre, int[] mascara) throws RemoteException {
+    public IndividuoTCP_Hibrido cruza_TCP_Hibrido(IndividuoTCP_Hibrido madre, IndividuoTCP_Hibrido padre, int[] mascara) throws RemoteException {
         int[] gen1 = new int[madre.getGenotipo().length];
         int[] gen2 = new int[madre.getGenotipo().length];
         IndividuoTCP_Hibrido res;

@@ -11,6 +11,7 @@ import GUI.Principal;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
@@ -168,9 +169,10 @@ public class Genetico3SAT extends Thread{
                     Individuo3SAT madre= Seleccion.seleccion(getPoblacionActual());
                     Individuo3SAT padre= Seleccion.seleccion(getPoblacionActual());
                     int[] mask= Herramientas.generarArregloBinarios(madre.getGenotipo().length);
-                    Individuo3SAT hijo= Cruza.cruzaMascaraBin(padre, madre, mask);
+                    Individuo3SAT hijo= panel_hilos.getPrincipal().getrMICruza().cruza_3SAT(madre, padre, mask);//Cruza.cruzaMascaraBin(padre, madre, mask);
                     if(generarProbabilidadMuta()){
-                        Muta.muta(hijo);
+                        hijo= panel_hilos.getPrincipal().getrMIMuta().muta_3SAT(hijo);
+                        //Muta.muta(hijo);
                     }
                     nuevaPob.add(hijo);
                 }
@@ -178,6 +180,8 @@ public class Genetico3SAT extends Thread{
                 getFitnessGeneracional().add( Herramientas.mejorPoblacion(nuevaPob).getFitness());
             } catch (InterruptedException ex) {
                 Logger.getLogger(Genetico3SAT.class.getName()).log(Level.SEVERE, null, ex);
+            }catch (RemoteException ex){
+                ex.printStackTrace();
             }finally{
                 semaf.release();
                 try {

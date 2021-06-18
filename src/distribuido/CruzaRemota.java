@@ -128,5 +128,11 @@ public class CruzaRemota extends  UnicastRemoteObject implements RMICruza{
     public void setInstancias_3SAT(int[][] instancias) throws RemoteException {
         Individuo3SAT.setInstancias(instancias);
     }
+    @Override
+    public void setValoresStaticosHibrido(int[][] matrizPesos, double[][] matrizInclinaciones, int inicial)throws RemoteException{
+        IndividuoTCP_Hibrido.setInicial(inicial);
+        IndividuoTCP_Hibrido.setMatrizPesos(matrizPesos);
+        IndividuoTCP_Hibrido.setMatrizInclinaciones(matrizInclinaciones);
+    }
     
 }

@@ -20,4 +20,6 @@ public interface RMIMuta extends Remote{
     public void setInstancias_3SAT(int [][] instancias)throws RemoteException;
     public IndividuoTCP muta_TCP(IndividuoTCP indiv) throws RemoteException;
     public IndividuoTCP_Hibrido muta_TCP_Hibrido(IndividuoTCP_Hibrido indiv) throws RemoteException;
+    public void setValoresStaticosHibrido(int[][] matrizPesos, double[][] matrizInclinaciones, int inicial)throws RemoteException;
+
 }

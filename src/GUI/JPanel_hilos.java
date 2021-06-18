@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
@@ -142,7 +143,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
                 break;
         }        
     }
-    public void terminoEvol(){
+    public void terminoEvol() throws RemoteException{
         setNuevo(false);
         setTerminado(true);
         getjButton_StartGen().setEnabled(true);
@@ -523,6 +524,16 @@ public class JPanel_hilos extends javax.swing.JPanel {
         jComboBox_TipoInsercion.setEnabled(false);
 
         jComboBox_GeneticDestino.setEnabled(false);
+        jComboBox_GeneticDestino.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                jComboBox_GeneticDestinoItemStateChanged(evt);
+            }
+        });
+        jComboBox_GeneticDestino.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBox_GeneticDestinoActionPerformed(evt);
+            }
+        });
 
         jLabel1.setFont(new java.awt.Font("Lucida Fax", 0, 14)); // NOI18N
         jLabel1.setText("Genetico Destino");
@@ -531,6 +542,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         jLabel2.setText("Tipo de Insercion");
 
         jButton_InsertarIndividuos.setText("Insertar Individuos");
+        jButton_InsertarIndividuos.setEnabled(false);
         jButton_InsertarIndividuos.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton_InsertarIndividuosActionPerformed(evt);
@@ -538,6 +550,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         });
 
         jButton_Actualizar.setText("Actualizar");
+        jButton_Actualizar.setEnabled(false);
         jButton_Actualizar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton_ActualizarActionPerformed(evt);
@@ -818,6 +831,8 @@ public class JPanel_hilos extends javax.swing.JPanel {
             actualizarDatosMejorInd();
         } catch (InterruptedException ex) {
             Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (RemoteException ex) {
+            Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jButton_ModDatosActionPerformed
     public void iniciarGrafica(){
@@ -827,7 +842,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         hiloG.setName("HiloGrafica");
         hiloG.start();
     }
-    private void startGen3SAT() {
+    private void startGen3SAT() throws RemoteException {
         if(isAbrir()){
             getGenetico3SAT().setName("Genetico "+this.getTipoGenetico());
             getGenetico3SAT().start();
@@ -890,7 +905,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         }
     }
 
-    private void startGenTCP() {
+    private void startGenTCP() throws RemoteException {
         if (isAbrir()) {
             getGeneticoTCP().setName("Genetico "+this.getTipoGenetico());
             getGeneticoTCP().start();
@@ -945,7 +960,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         }
     }
 
-    private void startGenTCP_Hibrido(){
+    private void startGenTCP_Hibrido() throws RemoteException{
         if (isAbrir()) {
             
         } else if(isNuevo()) {
@@ -1018,7 +1033,13 @@ public class JPanel_hilos extends javax.swing.JPanel {
             case "3 SAT":
             getGenetico3SAT().setNumGen(getNumGens());
             getGenetico3SAT().setProbMutal(getProbMuta());
-            getGenetico3SAT().setTamPoblacion(getTamPob());
+        {
+            try {
+                getGenetico3SAT().setTamPoblacion(getTamPob());
+            } catch (RemoteException ex) {
+                Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
             getGenetico3SAT().setTipoSeleccion(getSeleccion());
             break;
             case "TCP Hibrido":
@@ -1075,13 +1096,31 @@ public class JPanel_hilos extends javax.swing.JPanel {
             startGenNDamas();
             break;
             case "TCP":
-            startGenTCP();
+        {
+            try {
+                startGenTCP();
+            } catch (RemoteException ex) {
+                Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
             break;
             case "3 SAT":
-            startGen3SAT();
+        {
+            try {
+                startGen3SAT();
+            } catch (RemoteException ex) {
+                Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
             break;
             case "TCP Hibrido":
-            startGenTCP_Hibrido();
+        {
+            try {
+                startGenTCP_Hibrido();
+            } catch (RemoteException ex) {
+                Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
             break;
             default:
         }
@@ -1102,7 +1141,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
                 this.jComboBox_TipoInsercion.setEnabled(true);
                 actualizarGeneticosDisponibles();
                 this.jComboBox_GeneticDestino.setEnabled(true);
-                this.jButton_InsertarIndividuos.setEnabled(true);
+                //this.jButton_InsertarIndividuos.setEnabled(true);
                 this.jButton_Actualizar.setEnabled(true);
             }else{
                 getSemoforo().release();
@@ -1119,18 +1158,40 @@ public class JPanel_hilos extends javax.swing.JPanel {
             }
         }catch(InterruptedException ex){
             ex.printStackTrace();
+        } catch (RemoteException ex) {
+            Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jButton_PauseActionPerformed
 
     private void jButton_InsertarIndividuosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton_InsertarIndividuosActionPerformed
-        enviarIndividuos();
+        try {
+            enviarIndividuos();
+        } catch (RemoteException ex) {
+            Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }//GEN-LAST:event_jButton_InsertarIndividuosActionPerformed
 
     private void jButton_ActualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton_ActualizarActionPerformed
-        this.actualizarDatosMejorInd();
+        try {
+            this.actualizarDatosMejorInd();
+        } catch (RemoteException ex) {
+            Logger.getLogger(JPanel_hilos.class.getName()).log(Level.SEVERE, null, ex);
+        }
         this.actualizarIndividuosGeneticos();
         this.actualizarGeneticosDisponibles();
     }//GEN-LAST:event_jButton_ActualizarActionPerformed
+
+    private void jComboBox_GeneticDestinoItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_jComboBox_GeneticDestinoItemStateChanged
+        if(jComboBox_GeneticDestino.getSelectedIndex()!=-1){
+            jButton_InsertarIndividuos.setEnabled(true);
+        }
+    }//GEN-LAST:event_jComboBox_GeneticDestinoItemStateChanged
+
+    private void jComboBox_GeneticDestinoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox_GeneticDestinoActionPerformed
+        if(jComboBox_GeneticDestino.getSelectedIndex()!=-1){
+            jButton_InsertarIndividuos.setEnabled(true);
+        }
+    }//GEN-LAST:event_jComboBox_GeneticDestinoActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -1495,7 +1556,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
             }
         }
     }
-    public void actualizarDatosMejorInd(){
+    public void actualizarDatosMejorInd() throws RemoteException{
         switch (getTipoGenetico()){
             case "3 SAT":
                 this.getjTextArea_Genotipo().setText(Herramientas.mejorPoblacion(genetico3SAT.getPoblacionActual()).toString());
@@ -1564,7 +1625,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
         }
         return seleccionados;
     }
-    private void enviarIndividuos(){
+    private void enviarIndividuos() throws RemoteException{
         ArrayList<Object> individuosEnviar=new ArrayList<>();
         ArrayList<JPanel_Individuos> seleccionados= obtenerIndividuos();
         for (int i = 0; i < seleccionados.size(); i++) {
@@ -1577,7 +1638,7 @@ public class JPanel_hilos extends javax.swing.JPanel {
             }
         }
     }
-    private void recibirIndividuo(ArrayList<Object> individuos, String tipoInsercion){
+    private void recibirIndividuo(ArrayList<Object> individuos, String tipoInsercion) throws RemoteException{
         switch (tipoInsercion){
             case "Sustituir al principio":
                 

@@ -7,8 +7,11 @@ package TCP_Hibrido;
 
 import GUI.JPanel_hilos;
 import GUI.Principal;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.util.Pair;
 
 /**
@@ -63,6 +66,14 @@ public class GeneticoTCP_Hibrido_thread extends Thread{
     @Override
     public void run() {
         getFitnessGeneracional().add(Herramientas.mejorPoblacion(poblacionActual).getFitness());
+        try {
+            jPanel_hilos.getPrincipal().getrMICruza().setValoresStaticosHibrido(IndividuoTCP_Hibrido.getMatrizPesos(),
+                    IndividuoTCP_Hibrido.getMatrizInclinaciones(), IndividuoTCP_Hibrido.getInicial());
+            jPanel_hilos.getPrincipal().getrMIMuta().setValoresStaticosHibrido(IndividuoTCP_Hibrido.getMatrizPesos(), 
+                    IndividuoTCP_Hibrido.getMatrizInclinaciones(), IndividuoTCP_Hibrido.getInicial());
+        } catch (RemoteException ex) {
+            Logger.getLogger(GeneticoTCP_Hibrido_thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
         for (int i = 0; i < getNumGen(); i++) {
             try {
                 semaf.acquire();
@@ -73,9 +84,9 @@ public class GeneticoTCP_Hibrido_thread extends Thread{
                     IndividuoTCP_Hibrido madre= Seleccion.seleccion(poblacionActual);
                     IndividuoTCP_Hibrido padre= Seleccion.seleccion(poblacionActual);
                     int[] mask= Herramientas.generarArregloBinarios(madre.getGenotipo().length);
-                    IndividuoTCP_Hibrido hijo=Cruza.cruzaMascaraBin(padre, madre, mask);
+                    IndividuoTCP_Hibrido hijo= jPanel_hilos.getPrincipal().getrMICruza().cruza_TCP_Hibrido(madre, padre, mask);//Cruza.cruzaMascaraBin(padre, madre, mask);
                     if(generarProbabilidadMuta()){
-                        Muta.muta(hijo);
+                        hijo= jPanel_hilos.getPrincipal().getrMIMuta().muta_TCP_Hibrido(hijo);//Muta.muta(hijo);
                     }
                     nuevapob.add(hijo);
                 }
@@ -83,6 +94,8 @@ public class GeneticoTCP_Hibrido_thread extends Thread{
                 getFitnessGeneracional().add(Herramientas.mejorPoblacion(nuevapob).getFitness());
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
+            } catch (RemoteException ex) {
+                Logger.getLogger(GeneticoTCP_Hibrido_thread.class.getName()).log(Level.SEVERE, null, ex);
             } finally{
                 semaf.release();
                 try {
@@ -92,7 +105,11 @@ public class GeneticoTCP_Hibrido_thread extends Thread{
                 }
             }
         }
-        jPanel_hilos.terminoEvol();
+        try {
+            jPanel_hilos.terminoEvol();
+        } catch (RemoteException ex) {
+            Logger.getLogger(GeneticoTCP_Hibrido_thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private void generarPoblacion() {

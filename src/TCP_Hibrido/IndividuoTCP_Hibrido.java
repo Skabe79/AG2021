@@ -5,6 +5,7 @@
  */
 package TCP_Hibrido;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Random;
 import javafx.util.Pair;
@@ -14,7 +15,7 @@ import javafx.util.Pair;
  * @author skabe
  */
 
-public class IndividuoTCP_Hibrido {
+public class IndividuoTCP_Hibrido implements Serializable{
     private static int[][] matrizPesos=null;
     private static double[][] matrizInclinaciones=null;
     private static int inicial=-1;

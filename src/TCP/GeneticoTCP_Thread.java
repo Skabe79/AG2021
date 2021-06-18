@@ -7,6 +7,7 @@ package TCP;
 
 import GUI.JPanel_hilos;
 import GUI.Principal;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
@@ -71,9 +72,9 @@ public class GeneticoTCP_Thread extends Thread{
                     IndividuoTCP madre= Seleccion.seleccion(getPoblacionActual());
                     IndividuoTCP padre= Seleccion.seleccion(getPoblacionActual());
                     int[] mask= Herramientas.generarArregloBinarios(madre.getGenotipo().length);
-                    IndividuoTCP hijo= Cruza.cruzaMascaraBin(padre, madre, mask);
+                    IndividuoTCP hijo=  jPanel_hilos.getPrincipal().getrMICruza().cruza_TCP(madre, padre, mask);//Cruza.cruzaMascaraBin(padre, madre, mask);
                     if(generarProbabilidadMuta()){
-                        Muta.muta(hijo);
+                        hijo= jPanel_hilos.getPrincipal().getrMIMuta().muta_TCP(hijo);//Muta.muta(hijo);
                     }
                     nuevaPob.add(hijo);
                 }
@@ -81,6 +82,8 @@ public class GeneticoTCP_Thread extends Thread{
                 getFitnessGeneracional().add( Herramientas.mejorPoblacion(nuevaPob).getFitness());
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
+            } catch (RemoteException ex) {
+                Logger.getLogger(GeneticoTCP_Thread.class.getName()).log(Level.SEVERE, null, ex);
             } finally{
                 semaf.release();
                 try {
@@ -90,7 +93,11 @@ public class GeneticoTCP_Thread extends Thread{
                 }
             }
         }
-        getjPanel_hilos().terminoEvol();
+        try {
+            getjPanel_hilos().terminoEvol();
+        } catch (RemoteException ex) {
+            Logger.getLogger(GeneticoTCP_Thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     private void generarPoblacion(){
         try {
